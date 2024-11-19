@@ -1,0 +1,60 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type User {
+  id: ID!
+  name: String!
+  projects: [Project!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type Project {
+  id: ID!
+  name: String!
+  user: User!
+  totalTime: Int!
+  goalTime: Int!
+  deadline: DateTime!
+  isEngaging: Boolean!
+  startTime: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+scalar DateTime
+
+scalar Time
+
+type Query {
+  users: [User!]!
+  user(id: ID!): User
+  projects: [Project!]!
+  project(id: ID!): Project
+}
+
+input MutationUser {
+  name: String!
+}
+
+input MutationProject {
+  name: String!
+  userId: ID!
+  totalTime: Int!
+  goalTime: Int!
+  deadline: DateTime!
+  isEngaging: Boolean!
+  startTime: DateTime
+}
+
+type Mutation {
+  createUser(input: MutationUser): User!
+  updateUser(id: ID!, input: MutationUser): User!
+  deleteUser(id: ID!): Boolean!
+  createProject(input: MutationProject): Project!
+  updateProject(id: ID!, input: MutationProject): Project!
+  deleteProject(id: ID!): Boolean!
+}
