@@ -33,8 +33,6 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 	_project.TotalTime = field.NewInt64(tableName, "total_time")
 	_project.GoalTime = field.NewInt64(tableName, "goal_time")
 	_project.Deadline = field.NewTime(tableName, "deadline")
-	_project.IsEngaging = field.NewBool(tableName, "is_engaging")
-	_project.StartTime = field.NewTime(tableName, "start_time")
 	_project.CreatedAt = field.NewTime(tableName, "created_at")
 	_project.UpdatedAt = field.NewTime(tableName, "updated_at")
 	_project.DeletedAt = field.NewField(tableName, "deleted_at")
@@ -52,19 +50,17 @@ func newProject(db *gorm.DB, opts ...gen.DOOption) project {
 type project struct {
 	projectDo
 
-	ALL        field.Asterisk
-	ID         field.Int64
-	Name       field.String
-	UserID     field.Int64
-	TotalTime  field.Int64
-	GoalTime   field.Int64
-	Deadline   field.Time
-	IsEngaging field.Bool
-	StartTime  field.Time
-	CreatedAt  field.Time
-	UpdatedAt  field.Time
-	DeletedAt  field.Field
-	User       projectBelongsToUser
+	ALL       field.Asterisk
+	ID        field.Int64
+	Name      field.String
+	UserID    field.Int64
+	TotalTime field.Int64
+	GoalTime  field.Int64
+	Deadline  field.Time
+	CreatedAt field.Time
+	UpdatedAt field.Time
+	DeletedAt field.Field
+	User      projectBelongsToUser
 
 	fieldMap map[string]field.Expr
 }
@@ -87,8 +83,6 @@ func (p *project) updateTableName(table string) *project {
 	p.TotalTime = field.NewInt64(table, "total_time")
 	p.GoalTime = field.NewInt64(table, "goal_time")
 	p.Deadline = field.NewTime(table, "deadline")
-	p.IsEngaging = field.NewBool(table, "is_engaging")
-	p.StartTime = field.NewTime(table, "start_time")
 	p.CreatedAt = field.NewTime(table, "created_at")
 	p.UpdatedAt = field.NewTime(table, "updated_at")
 	p.DeletedAt = field.NewField(table, "deleted_at")
@@ -108,15 +102,13 @@ func (p *project) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *project) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 12)
+	p.fieldMap = make(map[string]field.Expr, 10)
 	p.fieldMap["id"] = p.ID
 	p.fieldMap["name"] = p.Name
 	p.fieldMap["user_id"] = p.UserID
 	p.fieldMap["total_time"] = p.TotalTime
 	p.fieldMap["goal_time"] = p.GoalTime
 	p.fieldMap["deadline"] = p.Deadline
-	p.fieldMap["is_engaging"] = p.IsEngaging
-	p.fieldMap["start_time"] = p.StartTime
 	p.fieldMap["created_at"] = p.CreatedAt
 	p.fieldMap["updated_at"] = p.UpdatedAt
 	p.fieldMap["deleted_at"] = p.DeletedAt

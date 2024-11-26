@@ -58,24 +58,23 @@ type ComplexityRoot struct {
 	}
 
 	Project struct {
-		CreatedAt  func(childComplexity int) int
-		Deadline   func(childComplexity int) int
-		DeletedAt  func(childComplexity int) int
-		GoalTime   func(childComplexity int) int
-		ID         func(childComplexity int) int
-		IsEngaging func(childComplexity int) int
-		Name       func(childComplexity int) int
-		StartTime  func(childComplexity int) int
-		TotalTime  func(childComplexity int) int
-		UpdatedAt  func(childComplexity int) int
-		User       func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		Deadline  func(childComplexity int) int
+		DeletedAt func(childComplexity int) int
+		GoalTime  func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Name      func(childComplexity int) int
+		TotalTime func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+		User      func(childComplexity int) int
 	}
 
 	Query struct {
-		Project  func(childComplexity int, id string) int
-		Projects func(childComplexity int) int
-		User     func(childComplexity int, id string) int
-		Users    func(childComplexity int) int
+		Project    func(childComplexity int, id string) int
+		Projects   func(childComplexity int) int
+		User       func(childComplexity int, id string) int
+		UserByName func(childComplexity int, name *string) int
+		Users      func(childComplexity int) int
 	}
 
 	User struct {
@@ -99,6 +98,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	User(ctx context.Context, id string) (*model.User, error)
+	UserByName(ctx context.Context, name *string) (*model.User, error)
 	Projects(ctx context.Context) ([]*model.Project, error)
 	Project(ctx context.Context, id string) (*model.Project, error)
 }
@@ -229,26 +229,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Project.ID(childComplexity), true
 
-	case "Project.isEngaging":
-		if e.complexity.Project.IsEngaging == nil {
-			break
-		}
-
-		return e.complexity.Project.IsEngaging(childComplexity), true
-
 	case "Project.name":
 		if e.complexity.Project.Name == nil {
 			break
 		}
 
 		return e.complexity.Project.Name(childComplexity), true
-
-	case "Project.startTime":
-		if e.complexity.Project.StartTime == nil {
-			break
-		}
-
-		return e.complexity.Project.StartTime(childComplexity), true
 
 	case "Project.totalTime":
 		if e.complexity.Project.TotalTime == nil {
@@ -301,6 +287,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+
+	case "Query.userByName":
+		if e.complexity.Query.UserByName == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userByName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserByName(childComplexity, args["name"].(*string)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -697,6 +695,29 @@ func (ec *executionContext) field_Query_project_argsID(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_userByName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	arg0, err := ec.field_Query_userByName_argsName(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_userByName_argsName(
+	ctx context.Context,
+	rawArgs map[string]interface{},
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+	if tmp, ok := rawArgs["name"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1018,10 +1039,6 @@ func (ec *executionContext) fieldContext_Mutation_createProject(ctx context.Cont
 				return ec.fieldContext_Project_goalTime(ctx, field)
 			case "deadline":
 				return ec.fieldContext_Project_deadline(ctx, field)
-			case "isEngaging":
-				return ec.fieldContext_Project_isEngaging(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Project_startTime(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Project_createdAt(ctx, field)
 			case "updatedAt":
@@ -1097,10 +1114,6 @@ func (ec *executionContext) fieldContext_Mutation_updateProject(ctx context.Cont
 				return ec.fieldContext_Project_goalTime(ctx, field)
 			case "deadline":
 				return ec.fieldContext_Project_deadline(ctx, field)
-			case "isEngaging":
-				return ec.fieldContext_Project_isEngaging(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Project_startTime(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Project_createdAt(ctx, field)
 			case "updatedAt":
@@ -1458,91 +1471,6 @@ func (ec *executionContext) fieldContext_Project_deadline(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Project_isEngaging(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Project_isEngaging(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsEngaging, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Project_isEngaging(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Project",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Project_startTime(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Project_startTime(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.StartTime, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*time.Time)
-	fc.Result = res
-	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Project_startTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Project",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DateTime does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Project_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Project_createdAt(ctx, field)
 	if err != nil {
@@ -1796,6 +1724,72 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_userByName(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_userByName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserByName(rctx, fc.Args["name"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖtask_manager_appᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_userByName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "projects":
+				return ec.fieldContext_User_projects(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_User_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userByName_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_projects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_projects(ctx, field)
 	if err != nil {
@@ -1847,10 +1841,6 @@ func (ec *executionContext) fieldContext_Query_projects(_ context.Context, field
 				return ec.fieldContext_Project_goalTime(ctx, field)
 			case "deadline":
 				return ec.fieldContext_Project_deadline(ctx, field)
-			case "isEngaging":
-				return ec.fieldContext_Project_isEngaging(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Project_startTime(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Project_createdAt(ctx, field)
 			case "updatedAt":
@@ -1912,10 +1902,6 @@ func (ec *executionContext) fieldContext_Query_project(ctx context.Context, fiel
 				return ec.fieldContext_Project_goalTime(ctx, field)
 			case "deadline":
 				return ec.fieldContext_Project_deadline(ctx, field)
-			case "isEngaging":
-				return ec.fieldContext_Project_isEngaging(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Project_startTime(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Project_createdAt(ctx, field)
 			case "updatedAt":
@@ -2205,10 +2191,6 @@ func (ec *executionContext) fieldContext_User_projects(_ context.Context, field 
 				return ec.fieldContext_Project_goalTime(ctx, field)
 			case "deadline":
 				return ec.fieldContext_Project_deadline(ctx, field)
-			case "isEngaging":
-				return ec.fieldContext_Project_isEngaging(ctx, field)
-			case "startTime":
-				return ec.fieldContext_Project_startTime(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Project_createdAt(ctx, field)
 			case "updatedAt":
@@ -2243,14 +2225,11 @@ func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2287,14 +2266,11 @@ func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNDateTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalODateTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4131,7 +4107,7 @@ func (ec *executionContext) unmarshalInputMutationProject(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "userId", "totalTime", "goalTime", "deadline", "isEngaging", "startTime"}
+	fieldsInOrder := [...]string{"name", "userId", "totalTime", "goalTime", "deadline"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4173,20 +4149,6 @@ func (ec *executionContext) unmarshalInputMutationProject(ctx context.Context, o
 				return it, err
 			}
 			it.Deadline = data
-		case "isEngaging":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isEngaging"))
-			data, err := ec.unmarshalNBoolean2bool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.IsEngaging = data
-		case "startTime":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
-			data, err := ec.unmarshalODateTime2ᚖtimeᚐTime(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.StartTime = data
 		}
 	}
 
@@ -4353,13 +4315,6 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "isEngaging":
-			out.Values[i] = ec._Project_isEngaging(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "startTime":
-			out.Values[i] = ec._Project_startTime(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Project_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4446,6 +4401,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_user(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userByName":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userByName(ctx, field)
 				return res
 			}
 
@@ -4552,14 +4526,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_projects(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._User_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "updatedAt":
 			out.Values[i] = ec._User_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "deletedAt":
 			out.Values[i] = ec._User_deletedAt(ctx, field, obj)
 		default:

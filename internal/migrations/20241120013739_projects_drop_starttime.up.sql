@@ -1,0 +1,2 @@
+ALTER TABLE projects
+  MODIFY COLUMN start_time DATETIME;

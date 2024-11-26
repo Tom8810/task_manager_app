@@ -2,12 +2,18 @@ package main
 
 import (
 	"fmt"
+	"task_manager_app/graph/model"
 	"task_manager_app/internal/db"
 	"task_manager_app/internal/env"
 
 	"gorm.io/gen"
 	"gorm.io/gen/field"
 )
+
+type UserMethod interface {
+	// SELECT * FROM users WHERE name = @name
+	FindByName(name string) (*model.User, error)
+}
 
 func main() {
 	// generatorの設定
@@ -35,6 +41,8 @@ func main() {
 	})), g.GenerateModel("projects", gen.FieldRelate(field.BelongsTo, "User", user, &field.RelateConfig{
 		RelatePointer: true,
 	})))
+
+	g.ApplyInterface(func(UserMethod) {}, user)
 
 	g.Execute()
 }

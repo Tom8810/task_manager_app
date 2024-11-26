@@ -6,6 +6,7 @@ package gen
 
 import (
 	"context"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -181,6 +182,21 @@ func (a userHasManyProjectsTx) Count() int64 {
 }
 
 type userDo struct{ gen.DO }
+
+// SELECT * FROM users WHERE name = @name
+func (u userDo) FindByName(name string) (result *model.User, err error) {
+	var params []interface{}
+
+	var generateSQL strings.Builder
+	params = append(params, name)
+	generateSQL.WriteString("SELECT * FROM users WHERE name = ? ")
+
+	var executeSQL *gorm.DB
+	executeSQL = u.UnderlyingDB().Raw(generateSQL.String(), params...).Take(&result) // ignore_security_alert
+	err = executeSQL.Error
+
+	return
+}
 
 func (u userDo) Debug() *userDo {
 	return u.withDO(u.DO.Debug())

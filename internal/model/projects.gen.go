@@ -20,10 +20,8 @@ type Project struct {
 	TotalTime  int64          `gorm:"column:total_time;not null" json:"total_time"`
 	GoalTime   int64          `gorm:"column:goal_time;not null" json:"goal_time"`
 	Deadline   time.Time      `gorm:"column:deadline;not null" json:"deadline"`
-	IsEngaging bool           `gorm:"column:is_engaging" json:"is_engaging"`
-	StartTime  time.Time      `gorm:"column:start_time" json:"start_time"`
-	CreatedAt  *time.Time     `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt  *time.Time     `gorm:"column:updated_at;default:CURRENT_TIMESTAMP" json:"updated_at"`
+	CreatedAt  time.Time     `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt  time.Time     `gorm:"column:updated_at;default:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt  gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
 	User       *User          `gorm:"foreignKey:UserID" json:"user"`
 }
